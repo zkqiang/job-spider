@@ -39,8 +39,8 @@ class SpiderProcess(Process):
         if generator:
             for result in spider.crawl():
                 self.data_queue.put(result)
-                self.logger.debug('%s %s %s...(省略)' % (result['title'], result['url'],
-                                  result['description'][:100]))
+                self.logger.debug('%s %s %50s...(省略)' % (result.get('title'), result.get('url'),
+                                  result.get('description')))
         self.logger.info('%s 爬虫已结束' % spider.__class__.__name__)
 
     def run(self):
@@ -74,7 +74,7 @@ class WriterProcess(Process):
                              '学历', '链接', '描述'])
             while True:
                 try:
-                    result = self.data_queue.get(timeout=30)
+                    result = self.data_queue.get(timeout=90)
                     if result:
                         row = [
                             result.get('title'), result.get('company'),
