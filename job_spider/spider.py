@@ -23,12 +23,15 @@ class SpiderMeta(type):
 class BaseSpider(object):
     """爬虫类的基类，提供需要的属性和方法"""
 
-    # 目标职位和城市，测试使用，正常运行会被改写
+    # 目标职位和城市，运行指定的参数会赋值实例属性
+    # 所以爬虫代码必须有这两个属性
     job = 'Python'
     city = '上海'
+
     # 默认的头部
     headers = {
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;'
+                  'q=0.9,image/webp,image/apng,*/*;q=0.8',
         'Accept-Encoding': 'gzip, deflate, br',
         'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
         'Connection': 'keep-alive',
@@ -74,6 +77,7 @@ class LaGouSpider(BaseSpider, metaclass=SpiderMeta):
     """拉勾网"""
 
     def __init__(self):
+        # 需要指定cookie，否则会出错
         self.headers.update({
             'Referer': 'https://www.lagou.com/jobs/list_{}?city={}&cl=false&fromSearch=true&'
                        'labelWords=&suginput='.format(self.job, self.city).encode('utf8'),
@@ -91,7 +95,7 @@ class LaGouSpider(BaseSpider, metaclass=SpiderMeta):
     def crawl(self):
         """
         启动爬虫的方法，爬虫类必须定义此方法，
-        并将每个职位的数据装成字典，然后用`yield`迭代返回
+        并将每个职位的数据用`yield`迭代返回
         """
         page = 1
         while True:
@@ -113,12 +117,14 @@ class LaGouSpider(BaseSpider, metaclass=SpiderMeta):
             job_codes = resp_text['content']['positionResult']['result']
             if job_codes:
                 for each in job_codes:
-                    yield self._parse_detail('https://www.lagou.com/jobs/%s.html' % each['positionId'])
+                    yield self._parse_detail('https://www.lagou.com/jobs/%s.html'
+                                             % each['positionId'])
             else:
                 break
             page += 1
 
     def _parse_detail(self, detail_url):
+        """解析详情页，并将数据以字典形式返回"""
         resp = self.request('get', detail_url)
         html = etree.HTML(resp.text.replace('\u2028', '').encode('utf-8'))
         title = html.xpath('//span[@class="name"]/text()')
@@ -141,6 +147,7 @@ class LaGouSpider(BaseSpider, metaclass=SpiderMeta):
             # 描述
             'description': html.xpath('string(//*[@id="job_detail"]/dd[2]/div)').replace('\xa0', '')
         }
+        # 过滤掉空格换行等
         for key in result.keys():
             result[key] = re.sub(r'\s+', '', result[key])
         result.update({'url': detail_url})
@@ -215,17 +222,20 @@ class Job51Spider(BaseSpider, metaclass=SpiderMeta):
             'keyword': self.job,
             'curr_page': 1
         }
+        # 用于控制退出循环
         control = True
         while control:
             resp = self.request('get', url, params=params, encoding='GBK')
             html = etree.HTML(resp.text)
             elements = html.xpath('//*[@id="resultList"]/div[@class="el"]/p/span/a')
             for each in elements:
-                if 'jobs.51job'in each.get('href') and \
-                        self.job.lower() in each.get('title').lower():
-                    yield self._parse_detail(each.get('href'))
-                else:
-                    control = False
+                # 过滤掉广告位
+                if 'jobs.51job'in each.get('href'):
+                    # 爬到不相关的职位后就基本爬完了
+                    if self.job.lower() in each.get('title').lower():
+                        yield self._parse_detail(each.get('href'))
+                    else:
+                        control = False
             params['curr_page'] += 1
 
     def _parse_city(self):
@@ -263,22 +273,25 @@ class LiePinSpider(BaseSpider, metaclass=SpiderMeta):
         if not city_code:
             self.logger.error('%s 不支持目标城市' % __class__.__name__)
             return []
-        params = {'dqs': city_code,
-                  'key': self.job,
-                  'headckid': '7d66a97979abf7ec',
-                  'curPage': 0}
         url = 'https://www.liepin.com/zhaopin/'
+        params = {
+            'dqs': city_code,
+            'key': self.job,
+            'headckid': '7d66a97979abf7ec',
+            'curPage': 0
+            }
+
         control = True
         while control:
             resp = self.request('get', url, params=params)
             html = etree.HTML(resp.text)
             elements = html.xpath('//div[@class="job-info"]/h3/a')
             for each in elements:
-                if '/job/' in each.get('href') and \
-                        self.job.lower() in each.text.lower():
-                    yield self._parse_detail(each.get('href').split('?')[0])
-                else:
-                    control = False
+                if '/job/' in each.get('href'):
+                    if self.job.lower() in each.text.lower():
+                        yield self._parse_detail(each.get('href').split('?')[0])
+                    else:
+                        control = False
             params['curPage'] += 1
 
     def _parse_city(self):
