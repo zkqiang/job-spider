@@ -310,8 +310,3 @@ class LiePinSpider(BaseSpider, metaclass=SpiderMeta):
 
 
 # 自定义爬虫类可在这里添加
-
-# print(LaGouSpider().crawl())
-# print(ZhiPinSpider()._parse_detail('https://www.zhipin.com/job_detail/1417027470.html?ka=search_list_3'))
-# print(Job51Spider()._parse_detail('http://jobs.51job.com/hangzhou-xhq/98294727.html?s=01&t=0'))
-# print(LiePinSpider().crawl())
