@@ -158,7 +158,7 @@ class ZhiPinSpider(BaseSpider, metaclass=SpiderMeta):
     """BOSS直聘"""
 
     # 很容易封IP，所以间隔长一些
-    request_sleep = 10
+    request_sleep = 15
 
     def crawl(self):
         # 获取城市的编号构成链接
@@ -193,6 +193,9 @@ class ZhiPinSpider(BaseSpider, metaclass=SpiderMeta):
         html = etree.HTML(resp.text)
         title = html.xpath('//div[@class="info-primary"]/div[@class="name"]/text()')
         if not title:
+            if re.search(r'您暂时无法继续访问～', resp.text):
+                self.logger.error('%s 可能已被BAN' % __class__.__name__)
+                return []
             self.logger.warning('%s 解析出错' % detail_url)
             return self._parse_detail(detail_url)
         result = {
@@ -253,10 +256,11 @@ class Job51Spider(BaseSpider, metaclass=SpiderMeta):
         if not title:
             self.logger.warning('%s 解析出错' % detail_url)
             return self._parse_detail(detail_url)
+        salary = html.xpath('//div[@class="tHeader tHjob"]/div/div/strong/text()')
         result = {
             'title': title[0],
             'company': html.xpath('//div[@class="tHeader tHjob"]/div/div/p/a/text()')[0],
-            'salary': html.xpath('//div[@class="tHeader tHjob"]/div/div/strong/text()')[0],
+            'salary': salary[0] if salary else '面议',
             'experience': html.xpath('//div[@class="jtag inbox"]/div/span/text()')[0].replace('经验', ''),
             'education': html.xpath('//div[@class="jtag inbox"]/div/span/text()')[1],
             'url': detail_url,
