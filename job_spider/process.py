@@ -9,6 +9,7 @@ import queue
 import logging
 import csv
 import time
+import re
 
 
 class SpiderProcess(Process):
@@ -38,9 +39,12 @@ class SpiderProcess(Process):
         generator = spider.crawl()
         if generator:
             for result in spider.crawl():
+                # 去除内容里的空格换行
+                for key in result.keys():
+                    result[key] = re.sub(r'\s+', '', result[key])
                 self.data_queue.put(result)
-                self.logger.debug('%s %s %50s...(省略)' % (result.get('title'), result.get('url'),
-                                  result.get('description')))
+                self.logger.debug('%s %s %50s...(省略)' % (
+                    result.get('title'), result.get('url'), result.get('description')))
         self.logger.info('%s 爬虫已结束' % spider.__class__.__name__)
 
     def run(self):

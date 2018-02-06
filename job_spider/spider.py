@@ -144,13 +144,11 @@ class LaGouSpider(BaseSpider, metaclass=SpiderMeta):
             'experience': html.xpath('//dd[@class="job_request"]/p/span[3]/text()')[0].replace('/', ''),
             # 学历
             'education': html.xpath('//dd[@class="job_request"]/p/span[4]/text()')[0].replace('/', ''),
+            # 链接
+            'url': detail_url,
             # 描述
             'description': html.xpath('string(//*[@id="job_detail"]/dd[2]/div)').replace('\xa0', '')
         }
-        # 过滤掉空格换行等
-        for key in result.keys():
-            result[key] = re.sub(r'\s+', '', result[key])
-        result.update({'url': detail_url})
         return result
 
 
@@ -205,7 +203,7 @@ class ZhiPinSpider(BaseSpider, metaclass=SpiderMeta):
             'experience': html.xpath('//div[@class="info-primary"]/p/text()')[1].replace('经验：', ''),
             'education': html.xpath('//div[@class="info-primary"]/p/text()')[2].replace('学历：', ''),
             'url': detail_url,
-            'description': re.sub(r'\s+', '', html.xpath('string(//div[@class="job-sec"][1]/div)'))
+            'description': html.xpath('string(//div[@class="job-sec"][1]/div)')
         }
         return result
 
@@ -264,7 +262,7 @@ class Job51Spider(BaseSpider, metaclass=SpiderMeta):
             'experience': html.xpath('//div[@class="jtag inbox"]/div/span/text()')[0].replace('经验', ''),
             'education': html.xpath('//div[@class="jtag inbox"]/div/span/text()')[1],
             'url': detail_url,
-            'description': re.sub(r'\s+', '', html.xpath('string(//div[@class="bmsg job_msg inbox"])'))
+            'description': html.xpath('string(//div[@class="bmsg job_msg inbox"])')
         }
         return result
 
@@ -321,7 +319,7 @@ class LiePinSpider(BaseSpider, metaclass=SpiderMeta):
             'experience': html.xpath('//div[@class="job-qualifications"]/span[2]/text()')[0],
             'education': html.xpath('//div[@class="job-qualifications"]/span[1]/text()')[0],
             'url': detail_url,
-            'description': html.xpath('string(//div[contains(@class,"job-description")]/div)').strip()
+            'description': html.xpath('string(//div[contains(@class,"job-description")]/div)')
         }
         return result
 
