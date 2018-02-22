@@ -8,10 +8,8 @@ from multiprocessing import Queue
 
 def main():
     arg = Arg()
-    #job = arg.get_arg('-j')
-    #city = arg.get_arg('-c')
-    job="java"
-    city="南京"
+    job = arg.get_arg('-j')
+    city = arg.get_arg('-c')
     queue = Queue()
     p1 = SpiderProcess(queue, job, city)
     p2 = WriterProcess(queue)
