@@ -205,7 +205,7 @@ class ZhiPinSpider(BaseSpider, metaclass=SpiderMeta):
         if not title:
             if re.search(r'您暂时无法继续访问～', resp.text):
                 self.logger.error('%s 可能已被BAN' % __class__.__name__)
-                return []
+                return None
             self.logger.warning('%s 解析出错' % detail_url)
             return self._parse_detail(detail_url)
         result = {
