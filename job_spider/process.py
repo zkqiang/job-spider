@@ -40,6 +40,8 @@ class SpiderProcess(Process):
         if generator:
             for result in spider.crawl():
                 # 去除内容里的空格换行
+                if not result:
+                    continue
                 for key in result.keys():
                     result[key] = re.sub(r'\s+', '', result[key])
                 self.data_queue.put(result)

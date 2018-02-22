@@ -8,7 +8,7 @@ import json
 import random
 import logging
 from lxml import etree
-
+from .cityId import  cityIdDict
 
 class SpiderMeta(type):
     """爬虫类的元类，注册子类到列表，爬虫类指定此元类才能加入进程"""
@@ -181,10 +181,22 @@ class ZhiPinSpider(BaseSpider, metaclass=SpiderMeta):
 
     def _parse_city(self):
         """从首页索引获取对应的城市编号"""
-        index_url = 'https://www.zhipin.com/'
-        resp = self.request('get', index_url)
-        city_code = re.findall(r'"(\d+)">%s</li>' % self.city, resp.text)[0]
-        return city_code
+        #index_url = 'https://www.zhipin.com/'
+        #resp = self.request('get', index_url)
+        #city_code = re.findall(r'"(\d+)">%s</li>' % self.city, resp.text)[0]
+        #return city_code
+        if self.city.endswith("市"):
+            self.city=self.city[:-1]
+        cityCode=cityIdDict[self.city]
+        if not cityCode:
+            return None
+        #处理最末一位。。。
+        if cityCode.endswith("1"):
+            cityCode=cityCode[:-1]+"0"
+        self.logger.debug(cityCode)
+        return cityCode
+
+
 
     def _parse_detail(self, detail_url):
         resp = self.request('get', detail_url)
@@ -193,7 +205,7 @@ class ZhiPinSpider(BaseSpider, metaclass=SpiderMeta):
         if not title:
             if re.search(r'您暂时无法继续访问～', resp.text):
                 self.logger.error('%s 可能已被BAN' % __class__.__name__)
-                return []
+                return None
             self.logger.warning('%s 解析出错' % detail_url)
             return self._parse_detail(detail_url)
         result = {
@@ -242,7 +254,10 @@ class Job51Spider(BaseSpider, metaclass=SpiderMeta):
     def _parse_city(self):
         index_url = 'http://www.51job.com/'
         resp = self.request('get', index_url, encoding='GBK')
-        city_index = re.findall(r'(http://www\.51job.+?)">%s</a' % self.city, resp.text)[0]
+        cs=re.findall(r'(http://www\.51job.+?)">%s</a' % self.city, resp.text)
+        if not cs or len(cs) == 0:
+            return None
+        city_index = cs[0]
         city_resp = self.request('get', city_index)
         city_code = re.findall(r'id="jobarea"\s+?value="(\d+)"', city_resp.text)[0]
         return city_code
