@@ -39,6 +39,8 @@ class SpiderProcess(Process):
         generator = spider.crawl()
         if generator:
             for result in spider.crawl():
+                if not result:
+                    continue
                 # 去除内容里的空格换行
                 for key in result.keys():
                     result[key] = re.sub(r'\s+', '', result[key])
