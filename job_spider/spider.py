@@ -106,6 +106,9 @@ class LaGouSpider(BaseSpider, metaclass=SpiderMeta):
             # 提示请求频繁则重试2次
             for _ in range(2):
                 resp = self.request('post', url, data=params)
+                if re.search(r'"result":\[\]', resp.text):
+                    self.logger.error('%s 不支持目标城市' % __class__.__name__)
+                    return
                 if '频繁' not in resp.text:
                     break
                 time.sleep(10)
@@ -163,8 +166,8 @@ class ZhiPinSpider(BaseSpider, metaclass=SpiderMeta):
         city_code = self._parse_city()
         if not city_code:
             self.logger.error('%s 不支持目标城市' % __class__.__name__)
-            return []
-        search_url = 'https://www.zhipin.com/c' + city_code[0]
+            return 
+        search_url = 'https://www.zhipin.com/c' + city_code
         page = 1
         while True:
             params = {'job': self.job, 'page': page, 'ka': 'page-%s' % page}
@@ -183,8 +186,9 @@ class ZhiPinSpider(BaseSpider, metaclass=SpiderMeta):
         """从首页索引获取对应的城市编号"""
         index_url = 'https://www.zhipin.com/'
         resp = self.request('get', index_url)
-        city_code = re.findall(r'"(\d+)">%s</li>' % self.city, resp.text)[0]
-        return city_code
+        city_code = re.findall(r'"(\d+)">%s</li>' % self.city, resp.text)
+        if city_code:
+            return city_code[0]
 
     def _parse_detail(self, detail_url):
         resp = self.request('get', detail_url)
@@ -193,7 +197,7 @@ class ZhiPinSpider(BaseSpider, metaclass=SpiderMeta):
         if not title:
             if re.search(r'您暂时无法继续访问～', resp.text):
                 self.logger.error('%s 可能已被BAN' % __class__.__name__)
-                return []
+                return 
             self.logger.warning('%s 解析出错' % detail_url)
             return self._parse_detail(detail_url)
         result = {
@@ -215,7 +219,7 @@ class Job51Spider(BaseSpider, metaclass=SpiderMeta):
         city_code = self._parse_city()
         if not city_code:
             self.logger.error('%s 不支持目标城市' % __class__.__name__)
-            return []
+            return 
         url = 'http://search.51job.com/jobsearch/search_result.php'
         params = {
             'fromJs': 1,
@@ -242,10 +246,11 @@ class Job51Spider(BaseSpider, metaclass=SpiderMeta):
     def _parse_city(self):
         index_url = 'http://www.51job.com/'
         resp = self.request('get', index_url, encoding='GBK')
-        city_index = re.findall(r'(http://www\.51job.+?)">%s</a' % self.city, resp.text)[0]
-        city_resp = self.request('get', city_index)
-        city_code = re.findall(r'id="jobarea"\s+?value="(\d+)"', city_resp.text)[0]
-        return city_code
+        city_index = re.findall(r'(http://www\.51job.+?)">%s</a' % self.city, resp.text)
+        if city_index:
+            city_resp = self.request('get', city_index[0])
+            city_code = re.findall(r'id="jobarea"\s+?value="(\d+)"', city_resp.text)[0]
+            return city_code
 
     def _parse_detail(self, detail_url):
         resp = self.request('get', detail_url, encoding='GBK')
@@ -274,7 +279,7 @@ class LiePinSpider(BaseSpider, metaclass=SpiderMeta):
         city_code = self._parse_city()
         if not city_code:
             self.logger.error('%s 不支持目标城市' % __class__.__name__)
-            return []
+            return 
         url = 'https://www.liepin.com/zhaopin/'
         params = {
             'dqs': city_code,
@@ -299,11 +304,12 @@ class LiePinSpider(BaseSpider, metaclass=SpiderMeta):
     def _parse_city(self):
         index_url = 'https://www.liepin.com/citylist/'
         resp = self.request('get', index_url)
-        city_index = re.findall(r'href="(/\w+/)"\stitle="%s' % self.city, resp.text)[0]
-        search_url = 'https://www.liepin.com' + city_index
-        search_resp = self.request('get', search_url)
-        city_code = re.findall(r'name="dqs"\svalue="(\d+)"', search_resp.text)[0]
-        return city_code
+        city_index = re.findall(r'href="(/\w+/)"\stitle="%s' % self.city, resp.text)
+        if city_index:
+            search_url = 'https://www.liepin.com' + city_index[0]
+            search_resp = self.request('get', search_url)
+            city_code = re.findall(r'name="dqs"\svalue="(\d+)"', search_resp.text)[0]
+            return city_code
 
     def _parse_detail(self, detail_url):
         resp = self.request('get', detail_url)
