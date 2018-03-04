@@ -170,7 +170,7 @@ class ZhiPinSpider(BaseSpider, metaclass=SpiderMeta):
         search_url = 'https://www.zhipin.com/c' + city_code
         page = 1
         while True:
-            params = {'job': self.job, 'page': page, 'ka': 'page-%s' % page}
+            params = {'query': self.job, 'page': page, 'ka': 'page-%s' % page}
             resp = self.request('get', search_url, params=params)
             html = etree.HTML(resp.text)
             detail_urls = html.xpath('//div[@class="info-primary"]/h3/a/@href')
@@ -184,16 +184,16 @@ class ZhiPinSpider(BaseSpider, metaclass=SpiderMeta):
 
     def _parse_city(self):
         """从首页索引获取对应的城市编号"""
-        index_url = 'https://www.zhipin.com/'
+        index_url = 'https://www.zhipin.com/common/data/city.json'
         resp = self.request('get', index_url)
-        city_code = re.findall(r'"(\d+)">%s</li>' % self.city, resp.text)
+        city_code = re.findall(r'"code":(\d+),"name":"%s"' % self.city, resp.text)
         if city_code:
             return city_code[0]
 
     def _parse_detail(self, detail_url):
         resp = self.request('get', detail_url)
         html = etree.HTML(resp.text)
-        title = html.xpath('//div[@class="info-primary"]/div[@class="name"]/text()')
+        title = html.xpath('//div[@class="info-primary"]/div[@class="name"]/h1/text()')
         if not title:
             if re.search(r'您暂时无法继续访问～', resp.text):
                 self.logger.error('%s 可能已被BAN' % __class__.__name__)
